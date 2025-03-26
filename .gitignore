@@ -1,0 +1,10 @@
+# bytecode and cache
+*.pyc
+__pycache__/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# common temp files
+*.log
+*.tmp
