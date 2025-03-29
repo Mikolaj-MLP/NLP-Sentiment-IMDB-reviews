@@ -10,7 +10,6 @@ from collections import Counter
 class DataPreprocessor:
     def __init__(self, remove_stopwords=True, use_stemming=False):
         """Initialize with preprocessing options, no length or vocab constraints yet."""
-        
         self.stop_words = set(stopwords.words('english')) if remove_stopwords else set()
         self.stemmer = PorterStemmer() if use_stemming else None
         self.word_to_idx = {}  # For vectorization
@@ -20,23 +19,12 @@ class DataPreprocessor:
         """Thoroughly clean a single text string."""
         if not isinstance(text, str) or pd.isna(text):  # Handle NaN or non-strings
             return ""
-        
-        # Convert to lowercase
         text = text.lower()
-        
-        # Remove URLs
         text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
         text = re.sub(r'www\.[a-zA-Z0-9\-.]+\.[a-zA-Z]{2,}', '', text)
-        
-        # Remove HTML tags (e.g., <br>, <p>)
         text = re.sub(r'<[^>]+>', '', text)
-        
-        # Replace special characters and numbers with space, keep letters and spaces
         text = re.sub(r'[^a-z\s]', ' ', text)
-        
-        # Collapse multiple spaces/newlines into a single space
         text = re.sub(r'\s+', ' ', text)
-        
         return text.strip()
     
     def tokenize(self, text):
@@ -93,7 +81,6 @@ class DataPreprocessor:
     def process_and_vectorize(self, data, max_length, vocab_size):
         """Full pipeline for later: process, build vocab, and vectorize."""
         processed = self.process(data)
-        
         if isinstance(processed, pd.DataFrame):
             self.build_vocabulary(processed['processed_text'], vocab_size)
             vectors = self.vectorize(processed['processed_text'], max_length)
