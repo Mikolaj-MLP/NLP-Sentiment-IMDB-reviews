@@ -1,4 +1,3 @@
-# models/trainer.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,7 +16,6 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         
-        # Metrics storage
         self.train_losses = []
         self.valid_losses = []
         self.valid_accuracies = []
@@ -72,7 +70,7 @@ class Trainer:
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
                 outputs = self.model(batch_x)
                 preds = torch.argmax(outputs, dim=1)
-                probs = torch.softmax(outputs, dim=1)[:, 1]  # Positive class probability
+                probs = torch.softmax(outputs, dim=1)[:, 1]
                 test_correct += (preds == batch_y).sum().item()
                 self.all_preds.extend(preds.cpu().numpy())
                 self.all_labels.extend(batch_y.cpu().numpy())
@@ -91,5 +89,5 @@ class Trainer:
         print(f"Test Accuracy: {self.test_accuracy:.4f}")
     
     def get_metrics(self):
-        return (self.train_losses, self.valid_losses, self.all_labels, 
-                self.all_preds, self.all_probs)
+        return (self.train_losses, self.valid_losses, self.valid_accuracies, 
+                self.all_labels, self.all_preds, self.all_probs)
