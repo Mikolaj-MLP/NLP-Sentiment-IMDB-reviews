@@ -1,11 +1,10 @@
-# models/bidirectional_lstm.py
 import torch
 import torch.nn as nn
 
 class BidirectionalLSTM(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, dropout=0.5):
         super(BidirectionalLSTM, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+        self.embedding = nn.Embedding(vocab_size +1, embedding_dim, padding_idx=0) # +1 is the index fix
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(hidden_dim * 2, output_dim)  # *2 for forward + backward
         self.dropout = nn.Dropout(dropout)
