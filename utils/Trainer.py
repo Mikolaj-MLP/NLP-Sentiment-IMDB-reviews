@@ -2,17 +2,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+import os
 
 class Trainer:
-    def __init__(self, model, train_loader, valid_loader, test_loader, epochs=10, lr=0.001, patience=3):
-        """Initialize with early stopping patience."""
+    def __init__(self, model, train_loader, valid_loader, test_loader, epochs=10, lr=0.001, patience=3, save_path=None):
+        """Initialize with early stopping and optional save path."""
         self.model = model
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.test_loader = test_loader
         self.epochs = epochs
         self.lr = lr
-        self.patience = patience  
+        self.patience = patience
+        self.save_path = save_path  
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
@@ -92,17 +94,19 @@ class Trainer:
             print(f"Valid Loss: {avg_valid_loss:.4f}")
             print(f"Valid Accuracy: {valid_accuracy:.4f}")
             
-            # Early stopping check
             if avg_valid_loss < self.best_valid_loss:
                 self.best_valid_loss = avg_valid_loss
                 self.epochs_no_improve = 0
-                self.best_model_state = self.model.state_dict()  # Save best model
+                self.best_model_state = self.model.state_dict()
+                if self.save_path:
+                    torch.save(self.best_model_state, self.save_path)
+                    print(f"Saved best model to {self.save_path}")
             else:
                 self.epochs_no_improve += 1
                 print(f"No improvement for {self.epochs_no_improve}/{self.patience} epochs")
                 if self.epochs_no_improve >= self.patience:
                     print(f"Early stopping triggered after {epoch+1} epochs")
-                    self.model.load_state_dict(self.best_model_state)  # Restore best model
+                    self.model.load_state_dict(self.best_model_state)
                     break
         
         self.evaluate_test()
