@@ -6,7 +6,6 @@ import os
 
 class Trainer:
     def __init__(self, model, train_loader, valid_loader, test_loader, epochs=10, lr=0.001, patience=3, save_path=None):
-        """Initialize with early stopping and optional save path."""
         self.model = model
         self.train_loader = train_loader
         self.valid_loader = valid_loader
@@ -14,7 +13,7 @@ class Trainer:
         self.epochs = epochs
         self.lr = lr
         self.patience = patience
-        self.save_path = save_path  
+        self.save_path = save_path
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
@@ -39,7 +38,7 @@ class Trainer:
         for batch_x, batch_y in train_bar:
             batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
             self.optimizer.zero_grad()
-            outputs = self.model(batch_x)
+            outputs = self.model(batch_x, device=self.device)  
             loss = self.criterion(outputs, batch_y)
             loss.backward()
             self.optimizer.step()
@@ -56,7 +55,7 @@ class Trainer:
         with torch.no_grad():
             for batch_x, batch_y in valid_bar:
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                outputs = self.model(batch_x)
+                outputs = self.model(batch_x, device=self.device)  # Pass device
                 total_valid_loss += self.criterion(outputs, batch_y).item()
                 preds = torch.argmax(outputs, dim=1)
                 correct += (preds == batch_y).sum().item()
@@ -76,7 +75,7 @@ class Trainer:
         with torch.no_grad():
             for batch_x, batch_y in test_bar:
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                outputs = self.model(batch_x)
+                outputs = self.model(batch_x, device=self.device)  # Pass device
                 preds = torch.argmax(outputs, dim=1)
                 probs = torch.softmax(outputs, dim=1)[:, 1]
                 test_correct += (preds == batch_y).sum().item()
