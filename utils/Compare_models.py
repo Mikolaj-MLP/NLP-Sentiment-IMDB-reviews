@@ -6,6 +6,7 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc
 class ModelComparator:
     def __init__(self):
         self.results = {}
+        self.summary_df = None  
     
     def add_model(self, model_name, train_losses, valid_losses, valid_accuracies, all_labels, all_preds, all_probs, train_time):
         """Add metrics for a model."""
@@ -16,11 +17,11 @@ class ModelComparator:
             'all_labels': all_labels,
             'all_preds': all_preds,
             'all_probs': all_probs,
-            'train_time': train_time  # In seconds
+            'train_time': train_time
         }
     
     def summary_table(self):
-        """Generate a summary table of key metrics."""
+        """Generate and store a summary table of key metrics."""
         summary = []
         for model_name, metrics in self.results.items():
             accuracy = sum(a == p for a, p in zip(metrics['all_labels'], metrics['all_preds'])) / len(metrics['all_labels'])
@@ -35,8 +36,8 @@ class ModelComparator:
                 'Final Valid Accuracy': metrics['valid_accuracies'][-1],
                 'Training Time (s)': metrics['train_time']
             })
-        df = pd.DataFrame(summary)
-        return df
+        self.summary_df = pd.DataFrame(summary)
+        return self.summary_df
     
     def plot_roc_curves(self):
         """Plot ROC curves for all models on one graph."""
@@ -100,8 +101,10 @@ class ModelComparator:
     def plot_all(self):
         """Display all comparative plots and table."""
         print("\nModel Comparison Summary:")
-        print(self.summary_table())
+        summary_table = self.summary_table()
+        print(summary_table)
         self.plot_roc_curves()
         self.plot_confusion_matrices()
         self.plot_losses()
         self.plot_accuracies()
+        return summary_table  

@@ -4,13 +4,15 @@ import torch.optim as optim
 from tqdm import tqdm
 
 class Trainer:
-    def __init__(self, model, train_loader, valid_loader, test_loader, epochs=10, lr=0.001):
+    def __init__(self, model, train_loader, valid_loader, test_loader, epochs=10, lr=0.001, patience=3):
+        """Initialize with early stopping patience."""
         self.model = model
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.test_loader = test_loader
         self.epochs = epochs
         self.lr = lr
+        self.patience = patience  
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
@@ -23,6 +25,10 @@ class Trainer:
         self.all_labels = []
         self.all_preds = []
         self.all_probs = []
+        
+        self.best_valid_loss = float('inf')
+        self.epochs_no_improve = 0
+        self.best_model_state = None
     
     def train_epoch(self):
         self.model.train()
@@ -85,6 +91,20 @@ class Trainer:
             print(f"Train Loss: {self.train_losses[-1]:.4f}")
             print(f"Valid Loss: {avg_valid_loss:.4f}")
             print(f"Valid Accuracy: {valid_accuracy:.4f}")
+            
+            # Early stopping check
+            if avg_valid_loss < self.best_valid_loss:
+                self.best_valid_loss = avg_valid_loss
+                self.epochs_no_improve = 0
+                self.best_model_state = self.model.state_dict()  # Save best model
+            else:
+                self.epochs_no_improve += 1
+                print(f"No improvement for {self.epochs_no_improve}/{self.patience} epochs")
+                if self.epochs_no_improve >= self.patience:
+                    print(f"Early stopping triggered after {epoch+1} epochs")
+                    self.model.load_state_dict(self.best_model_state)  # Restore best model
+                    break
+        
         self.evaluate_test()
         print(f"Test Accuracy: {self.test_accuracy:.4f}")
     
