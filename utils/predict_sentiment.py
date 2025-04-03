@@ -37,16 +37,14 @@ class PredictSentiment:
             model.to(self.device)  # Move model to appropriate device (CPU or GPU)
             model.eval()
             self.loaded_models[model_name] = model
-            print(f"Loaded {model_name} from {self.save_paths[model_name]}")
 
     def predict(self, review_text):
         """Process review and predict sentiment with all models."""
         tokens = self.preprocessor.process_text(review_text)
-        print(f"Processed Tokens: {tokens[:10]}...")
         
         vector = self.preprocessor.vectorize([tokens], max_length=300)
         input_tensor = torch.tensor(vector, dtype=torch.long).to(self.device)
-        
+        probs = []
         predictions = {}
         with torch.no_grad():
             for model_name, model in self.loaded_models.items():
@@ -59,5 +57,10 @@ class PredictSentiment:
                 sentiment = "Positive" if pred == 1 else "Negative"
                 predictions[model_name] = (sentiment, prob)
                 print(f"{model_name}: {sentiment} (Confidence: {prob:.4f})")
+                probs.append(prob)
+        
+        overall_avg = sum(probs) / len(probs)
+        overall_sentiment = "Positive" if overall_avg > 0.5 else "Negative"
+        print(f"\nThe review has a {overall_sentiment} sentiment\n")
         
         return predictions
