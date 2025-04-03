@@ -56,7 +56,7 @@ class PredictSentiment:
                 pred = torch.argmax(output, dim=1).item()
                 sentiment = "Positive" if pred == 1 else "Negative"
                 predictions[model_name] = (sentiment, prob)
-                print(f"{model_name}: {sentiment} (Confidence: {prob:.4f})")
+                print(f"{model_name}: {sentiment} (P(1): {prob:.4f})")
                 probs.append(prob)
         
         overall_avg = sum(probs) / len(probs)
