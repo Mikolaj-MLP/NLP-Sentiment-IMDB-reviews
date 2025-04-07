@@ -1,3 +1,4 @@
+# models/trainer.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -30,9 +31,7 @@ class Trainer:
         self.best_valid_loss = float('inf')
         self.epochs_no_improve = 0
         self.best_model_state = None
-        
-        self.temperature = 1.0  # Initialize temperature for calibration
-
+    
     def train_epoch(self):
         self.model.train()
         total_train_loss = 0
@@ -51,7 +50,7 @@ class Trainer:
             train_bar.set_postfix({'batch_loss': loss.item()})
         avg_train_loss = total_train_loss / len(self.train_loader)
         self.train_losses.append(avg_train_loss)
-        
+    
     def evaluate_epoch(self):
         self.model.eval()
         total_valid_loss = 0
@@ -72,45 +71,8 @@ class Trainer:
         self.valid_losses.append(avg_valid_loss)
         self.valid_accuracies.append(valid_accuracy)
         return avg_valid_loss, valid_accuracy
-        
-    def calibrate(self):
-        """
-        A naive calibration procedure that computes the average positive-class probability
-        on the validation set and adjusts the temperature scaling factor within ±5% of 1.0.
-        """
-        self.model.eval()
-        all_probs = []
-        with torch.no_grad():
-            for batch_x, batch_y in self.valid_loader:
-                batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                if "Attention" in self.model.__class__.__name__:
-                    outputs = self.model(batch_x, device=self.device)
-                else:
-                    outputs = self.model(batch_x)
-                # Get probability of positive class for the batch
-                probs = torch.softmax(outputs, dim=1)[:, 1]
-                all_probs.append(probs)
-        avg_prob = torch.cat(all_probs).mean().item()
-        
-        # Adjust temperature so that the scaling does not change more than 5%
-        if avg_prob > 0.55:
-            # Overconfident toward positive; increase temperature (max +5%)
-            delta = min(avg_prob - 0.5, 0.05)
-            self.temperature = 1.0 + delta
-        elif avg_prob < 0.45:
-            # Underconfident; decrease temperature (max -5%)
-            delta = min(0.5 - avg_prob, 0.05)
-            self.temperature = 1.0 - delta
-        else:
-            self.temperature = 1.0
-
-        print(f"Calibration complete. Average validation positive prob: {avg_prob:.4f}, temperature set to {self.temperature:.4f}")
-        
-    def evaluate_test(self, apply_calibration=True):
-        """
-        Evaluate the test set. If apply_calibration is True, adjust the model's logits using the
-        calibrated temperature before applying softmax.
-        """
+    
+    def evaluate_test(self):
         self.model.eval()
         test_correct = 0
         self.all_preds = []
@@ -124,9 +86,6 @@ class Trainer:
                     outputs = self.model(batch_x, device=self.device)
                 else:
                     outputs = self.model(batch_x)
-                # Optionally apply calibration by dividing the logits by the temperature
-                if apply_calibration:
-                    outputs = outputs / self.temperature
                 preds = torch.argmax(outputs, dim=1)
                 probs = torch.softmax(outputs, dim=1)[:, 1]
                 test_correct += (preds == batch_y).sum().item()
@@ -134,7 +93,7 @@ class Trainer:
                 self.all_labels.extend(batch_y.cpu().numpy())
                 self.all_probs.extend(probs.cpu().numpy())
         self.test_accuracy = test_correct / len(self.test_loader.dataset)
-        
+    
     def train(self):
         for epoch in range(self.epochs):
             self.train_epoch()
@@ -159,13 +118,9 @@ class Trainer:
                     self.model.load_state_dict(self.best_model_state)
                     break
         
-        # Calibrate the model on the validation set (without overreaching ±5%)
-        self.calibrate()
-        
-        # Evaluate on the test set with calibration applied
-        self.evaluate_test(apply_calibration=True)
-        print(f"Test Accuracy (with calibration): {self.test_accuracy:.4f}")
-        
+        self.evaluate_test()
+        print(f"Test Accuracy: {self.test_accuracy:.4f}")
+    
     def get_metrics(self):
         return (self.train_losses, self.valid_losses, self.valid_accuracies, 
                 self.all_labels, self.all_preds, self.all_probs)
