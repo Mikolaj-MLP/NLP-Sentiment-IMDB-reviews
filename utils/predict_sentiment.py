@@ -13,7 +13,7 @@ class PredictSentiment:
 
         # Initialize preprocessor
         self.preprocessor = DataPreprocessor(remove_stopwords=True, use_stemming=True)
-        self.preprocessor.word_to_idx = torch.load(vocab_path)  # Load trained vocab
+        self.preprocessor.word_to_idx = torch.load(vocab_path)  
         
         self.models = {
             "Unidirectional LSTM": UnidirectionalLSTM(vocab_size=10000, embedding_dim=100, hidden_dim=128, fc1_neurons=64, output_dim=2),
